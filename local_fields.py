@@ -1,0 +1,217 @@
+#!/usr/bin/env python
+import pymarc
+import glob
+import datetime
+import re
+import traceback
+
+def update_locations(field):
+    """Standardize sublocation (852 $b) and shelving (852 $c) text"""
+    b_swaps = {
+        "ARCHITECTURE": "LAL",
+        "Centre Franco-Ontarien de Folklore": "CFOF",
+        "Centre franco-ontarien de folklore": "CFOF",
+        "crc circ": "LDCR",
+        "crc pic": "LDCR",
+        "crc vidd": "LDCR",
+        "Curriculum Resource Centre": "LDCR",
+        "DESM-DEP": "OSUL",
+        "DESM-PER": "OSUL",
+        "DESMAAIS": "OSUL",
+        "DESMARAIAS": "OSUL",
+        "DESMARAIS": "OSUL",
+        "DESMARAIS-DEP": "OSUL",
+        "DESMARASI": "OSUL",
+        "DESMRAIS": "OSUL",
+        "Desmarais": "OSUL",
+        "Instructional Media Centre": "ITServiceDesk",
+        "J.N. Desmarais Library": "OSUL",
+        "HUNTINGTON": "HUNTINGTON",
+        "Huntington College Library": "HUNTINGTON",
+        "Huntington University Library": "HUNTINGTON",
+        "Huntington University Library - BV 4401 A1 J68": "HUNTINGTON",
+        "Huntington University Library - Storage": "HUNTINGTON",
+        "Huntington University Library - Storage ": "HUNTINGTON",
+        "Laboratoire de didactiques, E.S.E.": "LDCR",
+        "Laurentian University": "OSUL",
+        "Leddy Library": "OWA",
+        "led ser": "OWA",
+        "ledl circ": "OWA",
+        "ledl disn": "OWA",
+        "ledl dnon": "OWA",
+        "ledl docs": "OWA",
+        "ledl mfms": "OWA",
+        "ledl ref": "OWA",
+        "ledl ser": "OWA",
+        "ledl vidd": "OWA",
+        "leld ser": "OWA",
+        "School of Architecture": "LAL",
+        "SCHOOL OF ARCHITECTURE": "LAL",
+        "Périodiques": "SUDBURY",
+        "Université de Sudbury": "SUDBURY",
+        "University of Sudbury": "SUDBURY",
+        "Université Laurentienne - Laurentian University": "OSUL",
+
+    }
+
+    c_swaps = {
+        "DEPOSITORY": "Depository",
+        "DESM-ACH": "Archives",
+        "DESM-ARCH": "Archives",
+        "DESM-ARCHIVE": "Archives",
+        "DESM-ARCHIVES/REF": "Archives (Reference)",
+        "DESMAR-REF": "Archives (Reference)",
+        "Circulation (3rd floor)": "Circulation",
+        "DESM-CIR": "Circulation",
+        "DESM-CIR (backwall)": "Circulation",
+        "DESM-CIR (shelved at the end of Z))": "Circulation",
+        "DESM-DEP": "Depository",
+        "DESM-DLI": "Government Documents",
+        "DESM-DOC": "Government Documents",
+        "DESM-DOCR": "Government Documents (Reference)",
+        "DESM-DOCS": "Government Documents",
+        "DESM-DOS": "Government Documents",
+        "DESM-FAC": "Faculty Authors Collection",
+        "DESM-FICHE": "Microfiche",
+        "DESM-FIL": "Microfilm",
+        "DESM-FILM": "Microfilm",
+        "DESM-GOV": "Government Documents",
+        "DESM-INFO": "Information Desk",
+        "DESM-MICROFICHE": "Microfiche",
+        "DESM-MRC": "Music Resource Centre",
+        "DESM-PER": "Periodicals",
+        "DESM=PER": "Periodicals",
+        "DESM-NEWS": "Newspapers",
+        "DESM-REF": "Reference",
+        "REFERENCE": "Reference",
+        "DEPOSITORY (1st Floor)": "Depository",
+        "DESMI-DEP": "Depository",
+        "DESMI-REF": "Reference",
+        "DESM-BIBL": "Bibliographies",
+        "AV": "Audio-visual",
+        "DESM-CD": "Audio-visual",
+        "Videos": "Audio-visual",
+        "DESM-CIRC (shelved at the end of Z)": "Circulation",
+        "DESM-DEP ": "Depository",
+        "DESM-FAC ": "Faculty Authors Collection",
+        "DESM-IND": "Indexes",
+        "DESM-PER ": "Periodicals",
+        "DESM-PERIODICAL": "Periodicals",
+        "DESM-RARE": "Archives (Rare Books Collection)",
+        "DESM-REF                              ": "Reference",
+        "DESM-REF (Back Wall)": "Reference (Back Wall)",
+        "DESM-REF/DEP": "Depository (Reference)",
+        "DESM-REG": "Reference",
+        "DOC": "Government Documents",
+        "HUNT PER": "Periodicals",
+        "HUNT-PER": "Periodicals",
+        "HUNT-STPER": "Periodicals (Storage)",
+        "In storage.": "Periodicals (Storage)",
+        "LAL-PER": "Periodicals",
+        "School of Architecture": "Periodicals",
+        "MICROFICHE": "Microfiche",
+        "RESERVES": "Reserves",
+        "Archives.": "Archives",
+        "PERIODICAL": "Periodicals",
+        "Periodical": "Periodicals",
+        "Periodical Room": "Periodicals",
+        "PeriodicalS": "Periodicals",
+        "Periodicals.": "Periodicals",
+        "Periodiques": "Periodicals",
+        "Périodique": "Periodicals",
+        "Périodiques": "Periodicals",
+        "Périodiques.": "Periodicals",
+        "Périodiques/Periodicals": "Periodicals",
+        "STACKS": "Circulation",
+        "Stacks": "Circulation",
+        "SUDB-PER": "Periodicals",
+        "livre rare - rare book collection": "Rare Books Collection",
+        "Rare": "Rare Books Collection",
+        "DESM-WWW": "Online",
+        "FILESERVER": "Online",
+        "Internet": "Online",
+        "Periodicals - online": "Online",
+
+    }
+
+    for i, txt in enumerate(field.subfields):
+        if i and field.subfields[i - 1] == "b":
+            if field.subfields[i] in b_swaps:
+                field.subfields[i] = b_swaps[field.subfields[i]]
+        if i and field.subfields[i - 1] == "c":
+            if field.subfields[i] in c_swaps:
+                field.subfields[i] = c_swaps[field.subfields[i]]
+
+def split_provider(field):
+    """
+    Break the electronic provider out into a separate subfield
+
+    From 856 $y Available online / Disponible en ligne (ScholarsPortal)
+    To   856 $y Available online / Disponible en ligne $e ScholarsPortal
+    """
+
+    avail = "Available online / disponible en ligne"
+    for i, txt in enumerate(field.subfields):
+        if i and field.subfields[i - 1] == "y":
+            m = re.search(r"^.*?\((.*?)\)", field.subfields[i])
+            if m:
+                field.subfields[i] = avail
+                field.add_subfield("e", m.group(1))
+            elif "Available" in txt or "Avaialable" in txt or "Avaiilable online" in txt or "AVailable" in txt or "Availabe" in txt or "Availalbe" in txt or "Availble" in txt or "Check" in txt or "Click" in txt or "Connect to resource" in txt or "Disponibl" in txt or "Disponigle" in txt or "Disponilbe" in txt or "Online version here" in txt or "PDF version available" in txt or "Scholars Portal Books" in txt or "Taylor & Francis eBooks A-Z" in txt:
+                field.subfields[i] = avail
+
+
+def remove_algoma(record, field):
+    for u in field.get_subfields("u"):
+        if "libproxy.auc.ca" in u:
+            record.remove_field(field)
+
+def remove_lu_proxy(record, field):
+    proxy = "librweb.laurentian.ca"
+
+    for i, txt in enumerate(field.subfields):
+        if i and field.subfields[i - 1] == "u" and proxy in txt:
+            record.remove_field(field)
+
+def main():
+
+    mrcs = glob.glob("lumarc*")
+    mrcs = glob.glob("laurentian.mrc")
+    today = datetime.date.today().strftime("%Y%m%d")
+    fields = ("770", "771", "772", "773", "774", "775", "776", "777", "780", "785", "787")
+    ctr = 1
+    url_notes = {}
+
+    with open("OCUL_LU_bib_{}.mrc".format(today), "wb") as localf, open("OCUL_LU_mfhd_{}.mrc".format(today), "wb") as mfhdf:
+        for mrc in mrcs:
+            try:
+                marcf = pymarc.MARCReader(open(mrc, "rb"))
+                for record in marcf:
+                    ctr += 1
+                    if ctr % 1000 == 0:
+                        print(ctr)
+                    for field in record.get_fields(*fields):
+                        field.add_subfield("9", "LOCAL")
+                    for field in record.get_fields("856"):
+                        split_provider(field)
+                        remove_lu_proxy(record, field)
+                        remove_algoma(record, field)
+                    for field in record.get_fields("856"):
+                        for note in field.get_subfields("y"):
+                            url_notes[note] = 1
+                        
+                    if record.get_fields("245") or record.get_fields("240"):
+                        localf.write(record.as_marc())
+                    else:
+                        for field in record.get_fields("852"):
+                            update_locations(field)
+                        mfhdf.write(record.as_marc())
+            except Exception as e:
+                traceback.print_exc()
+                print("{} : {}".format(mrc, e))
+                continue
+    for note in (sorted(url_notes)):
+        print("{}\n".format(note))
+
+if __name__ == '__main__':
+    main()
