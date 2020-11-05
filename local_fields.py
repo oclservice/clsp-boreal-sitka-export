@@ -180,6 +180,8 @@ def split_provider(field):
 
 
 def remove_other_856(record, field):
+    "Discard 856 fields from other universities"
+
     for u in field.get_subfields("u"):
         if "libproxy.auc.ca" in u or "ezproxy.uwindsor.ca" in u:
             record.remove_field(field)
@@ -202,6 +204,7 @@ def remove_other_856(record, field):
 
 
 def update_lu_proxy(field):
+    "Move to a secure proxy prefix for legacy records"
     old_proxy = "http://librweb.laurentian.ca"
     https_proxy = "https://login.librweb.laurentian.ca"
 
@@ -211,13 +214,19 @@ def update_lu_proxy(field):
 
 
 def deoclcnum_french_records(record):
+    "Prevent our French records from matching English records in the NZ"
     for f in record.get_fields("041"):
-        for lang in f.get_subfields("a"):
-            if "fre" in lang:
-                for i in record.get_fields("035"):
-                    for idnum in i.get_subfields("a"):
-                        if "OCoLC" in idnum:
-                            record.remove_field(i)
+        for i, lang in enumerate(f.subfields):
+            if i and f.subfields[i - 1] == "a":
+                if "fre" in lang:
+                    for i in record.get_fields("035"):
+                        for idnum in i.get_subfields("a"):
+                            if "OCoLC" in idnum:
+                                record.remove_field(i)
+                # Use multiple $a to conform to 041 requirements
+                if lang == "engfre":
+                    f.subfields[i] = "eng"
+                    f.add_subfield("a", "fre")
 
 
 def main():
