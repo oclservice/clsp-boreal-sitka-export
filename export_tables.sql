@@ -255,4 +255,15 @@ AND ci.target_copy = co.id ;
 \copy (SELECT * FROM config.copy_status) to item_status.csv delimiter ',' CSV header
 -- COPY 20
 
+--P2E
+\copy (
+  SELECT acn.record, 'Portfolio' AS resource_type
+  FROM asset.call_number acn
+    INNER JOIN biblio.record_entry bre ON bre.id = acn.record
+  WHERE acn.deleted IS FALSE
+    AND bre.deleted IS FALSE
+    AND acn.owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
+    AND acn.label = '##URI##'
+  ORDER BY acn.record
+) to p2e.csv DELIMITER ',' CSV header
 
