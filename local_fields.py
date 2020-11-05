@@ -5,6 +5,7 @@ import datetime
 import re
 import traceback
 
+
 def update_locations(field):
     """Standardize sublocation (852 $b) and shelving (852 $c) text"""
     b_swaps = {
@@ -51,7 +52,6 @@ def update_locations(field):
         "Université de Sudbury": "SUDBURY",
         "University of Sudbury": "SUDBURY",
         "Université Laurentienne - Laurentian University": "OSUL",
-
     }
 
     c_swaps = {
@@ -131,7 +131,6 @@ def update_locations(field):
         "FILESERVER": "Online",
         "Internet": "Online",
         "Periodicals - online": "Online",
-
     }
 
     for i, txt in enumerate(field.subfields):
@@ -141,6 +140,7 @@ def update_locations(field):
         if i and field.subfields[i - 1] == "c":
             if field.subfields[i] in c_swaps:
                 field.subfields[i] = c_swaps[field.subfields[i]]
+
 
 def split_provider(field):
     """
@@ -157,32 +157,94 @@ def split_provider(field):
             if m:
                 field.subfields[i] = avail
                 field.add_subfield("e", m.group(1))
-            elif "Available" in txt or "Avaialable" in txt or "Avaiilable online" in txt or "AVailable" in txt or "Availabe" in txt or "Availalbe" in txt or "Availble" in txt or "Check" in txt or "Click" in txt or "Connect to resource" in txt or "Disponibl" in txt or "Disponigle" in txt or "Disponilbe" in txt or "Online version here" in txt or "PDF version available" in txt or "Scholars Portal Books" in txt or "Taylor & Francis eBooks A-Z" in txt:
+            elif (
+                "Available" in txt
+                or "Avaialable" in txt
+                or "Avaiilable online" in txt
+                or "AVailable" in txt
+                or "Availabe" in txt
+                or "Availalbe" in txt
+                or "Availble" in txt
+                or "Check" in txt
+                or "Click" in txt
+                or "Connect to resource" in txt
+                or "Disponibl" in txt
+                or "Disponigle" in txt
+                or "Disponilbe" in txt
+                or "Online version here" in txt
+                or "PDF version available" in txt
+                or "Scholars Portal Books" in txt
+                or "Taylor & Francis eBooks A-Z" in txt
+            ):
                 field.subfields[i] = avail
 
 
-def remove_algoma(record, field):
+def remove_other_856(record, field):
     for u in field.get_subfields("u"):
-        if "libproxy.auc.ca" in u:
+        if "libproxy.auc.ca" in u or "ezproxy.uwindsor.ca" in u:
+            record.remove_field(field)
+            return
+
+    for nine in field.get_subfields("9"):
+        if (
+            "ALGOMASYS" in nine
+            or "HRSRH" in nine
+            or "HSN" in nine
+            or "NBRHC" in nine
+            or "OSM" in nine
+            or "SAH" in nine
+        ):
             record.remove_field(field)
 
-def remove_lu_proxy(record, field):
-    proxy = "librweb.laurentian.ca"
+    for z in field.get_subfields("z"):
+        if "Windsor's electronic resource" in z:
+            record.remove_field(field)
+
+
+def update_lu_proxy(field):
+    old_proxy = "http://librweb.laurentian.ca"
+    https_proxy = "https://login.librweb.laurentian.ca"
 
     for i, txt in enumerate(field.subfields):
-        if i and field.subfields[i - 1] == "u" and proxy in txt:
-            record.remove_field(field)
+        if i and field.subfields[i - 1] == "u" and old_proxy in txt:
+            field.subfields[i] = txt.replace(old_proxy, https_proxy)
+
+
+def deoclcnum_french_records(record):
+    for f in record.get_fields("041"):
+        for lang in f.get_subfields("a"):
+            if "fre" in lang:
+                for i in record.get_fields("035"):
+                    for idnum in i.get_subfields("a"):
+                        if "OCoLC" in idnum:
+                            record.remove_field(i)
+
 
 def main():
 
     mrcs = glob.glob("lumarc*")
     mrcs = glob.glob("laurentian.mrc")
+    mrcs = glob.glob("laurentian_test.mrc")
     today = datetime.date.today().strftime("%Y%m%d")
-    fields = ("770", "771", "772", "773", "774", "775", "776", "777", "780", "785", "787")
+    local_fields = (
+        "770",
+        "771",
+        "772",
+        "773",
+        "774",
+        "775",
+        "776",
+        "777",
+        "780",
+        "785",
+        "787",
+    )
     ctr = 1
     url_notes = {}
 
-    with open("OCUL_LU_bib_{}.mrc".format(today), "wb") as localf, open("OCUL_LU_mfhd_{}.mrc".format(today), "wb") as mfhdf:
+    with open("OCUL_LU_bib_{}.mrc".format(today), "wb") as localf, open(
+        "OCUL_LU_mfhd_{}.mrc".format(today), "wb"
+    ) as mfhdf:
         for mrc in mrcs:
             try:
                 marcf = pymarc.MARCReader(open(mrc, "rb"))
@@ -190,16 +252,17 @@ def main():
                     ctr += 1
                     if ctr % 1000 == 0:
                         print(ctr)
-                    for field in record.get_fields(*fields):
+                    deoclcnum_french_records(record)
+                    for field in record.get_fields(*local_fields):
                         field.add_subfield("9", "LOCAL")
                     for field in record.get_fields("856"):
                         split_provider(field)
-                        remove_lu_proxy(record, field)
-                        remove_algoma(record, field)
+                        update_lu_proxy(field)
+                        remove_other_856(record, field)
                     for field in record.get_fields("856"):
                         for note in field.get_subfields("y"):
                             url_notes[note] = 1
-                        
+
                     if record.get_fields("245") or record.get_fields("240"):
                         localf.write(record.as_marc())
                     else:
@@ -210,8 +273,9 @@ def main():
                 traceback.print_exc()
                 print("{} : {}".format(mrc, e))
                 continue
-    for note in (sorted(url_notes)):
+    for note in sorted(url_notes):
         print("{}\n".format(note))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
