@@ -56,7 +56,7 @@
 ) to item_stats.csv delimiter ',' CSV header
 -- COPY 29229
 
-3) export the patron data
+-- 3) export the patron data
 
 --patrons
 
@@ -221,7 +221,7 @@ WHERE a.id = ci.id
 -- UPDATE 4032
 
 UPDATE mlb.laurentian_fines a
-SET barcode =  co.barcode
+SET barcode =  co.id
 FROM action.circulation ci, asset.copy co
 WHERE a.id = ci.id
 AND ci.target_copy = co.id ;
