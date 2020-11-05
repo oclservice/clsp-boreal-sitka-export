@@ -4,8 +4,8 @@
   SELECT co.*, ca.label, ca.label_class, ca.record, ou.name AS libraryname, cl.name AS copylocation, st.name AS statusname
   FROM config.copy_status st, asset.copy co, asset.call_number ca, actor.org_unit ou, asset.copy_location cl
   WHERE co.deleted IS FALSE
-    AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107)
-    AND ca.owning_lib IN (105,113,130,104,108,103,132,151,131,150,107)
+    AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
+    AND ca.owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
     AND ca.deleted IS FALSE
     AND co.call_number = ca.id
     AND co.circ_lib = ou.id
@@ -23,12 +23,12 @@
     SELECT id
     FROM asset.copy 
     WHERE deleted IS FALSE
-      AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107)
+      AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
       AND call_number IN (
         SELECT id
         FROM asset.call_number
         WHERE deleted IS FALSE
-          AND owning_lib IN (105,113,130,104,108,103,132,151,131,150,107)
+          AND owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
       )
   )
 ) to item_notes.csv delimiter ',' CSV header
@@ -45,12 +45,12 @@
       SELECT id
       FROM asset.copy
       WHERE deleted IS FALSE
-        AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107)
+        AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
         AND call_number IN (
           SELECT id
           FROM asset.call_number
           WHERE deleted IS FALSE
-            AND owning_lib IN (105,113,130,104,108,103,132,151,131,150,107)
+            AND owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
       )
   )
 ) to item_stats.csv delimiter ',' CSV header
@@ -64,7 +64,7 @@
   SELECT *
   FROM actor.usr
   WHERE deleted IS FALSE
-    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107)
+    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
 ) to patron.csv delimiter ',' CSV header
 -- COPY 77658
 
@@ -77,7 +77,7 @@
       SELECT id
       FROM actor.usr
       WHERE deleted IS FALSE
-      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107)
+      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 ) to patron_barcode.csv delimiter ',' CSV header
 -- COPY 77728
@@ -91,7 +91,7 @@
     SELECT id
     FROM actor.usr
     WHERE deleted IS FALSE
-      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107)
+      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 ) to patron_setting.csv delimiter ',' CSV header
 -- COPY 1297
@@ -105,7 +105,7 @@
     SELECT id
     FROM actor.usr
     WHERE deleted IS FALSE
-      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107)
+      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 ) to patron_notes.csv delimiter ',' CSV header
 -- COPY 1987
@@ -119,7 +119,7 @@
     SELECT id
     FROM actor.usr
     WHERE deleted IS FALSE
-    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107)
+    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 ) to patron_address.csv delimiter ',' CSV header
 -- COPY 25395
@@ -137,7 +137,7 @@
     SELECT id
     FROM actor.usr
     WHERE deleted IS FALSE
-    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107)
+    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 ) to patron.stat_cat.csv delimiter ',' csv header
 -- 19299
@@ -148,7 +148,7 @@
   SELECT target_biblio_record_entry, barcode, name, title
   FROM container.biblio_record_entry_bucket c, container.biblio_record_entry_bucket_item i, reporter.super_simple_record r,actor.usr u, actor.card ca
   WHERE btype = 'bookbag'
-    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107)
+    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
     AND c.id = i.bucket
     AND i.target_biblio_record_entry = r.id
     AND owner = u.id
@@ -160,13 +160,13 @@
 --export holds
 
 --check for holds WHERE the pickup lib is not an algoma one
-SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107) AND pickup_lib not IN (105,113,130,104,108,103,132,151,131,150,107) AND cancel_time IS NULL AND fulfillment_time IS NULL;
+SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107,117) AND pickup_lib not IN (105,113,130,104,108,103,132,151,131,150,107,117) AND cancel_time IS NULL AND fulfillment_time IS NULL;
 -- count 
 ---------
 --     0
 --(1 row)
 
-conifer=# SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107) AND cancel_time IS NULL AND fulfillment_time IS NULL AND (expire_time > now() or expire_time IS NULL);
+conifer=# SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107,117) AND cancel_time IS NULL AND fulfillment_time IS NULL AND (expire_time > now() or expire_time IS NULL);
 -- count 
 ---------
 --    17
@@ -174,7 +174,7 @@ conifer=# SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113
 \copy (
   SELECT *
   FROM action.hold_request
-  WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107)
+  WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
     AND cancel_time IS NULL
     AND fulfillment_time IS NULL
     AND (expire_time > now() or expire_time IS NULL)
@@ -186,26 +186,26 @@ conifer=# SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113
 \copy (
   SELECT *
   FROM action.circulation
-  WHERE circ_lib IN (105,113,130,104,108,103,132,151,131,150,107)
+  WHERE circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
   AND checkin_time IS NULL
 ) to circ.csv delimiter ',' CSV header
 -- COPY 3398
 
 --fines
 
-SELECT count(*) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107) AND balance_owed  != 0 ;
+SELECT count(*) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107,117) AND balance_owed  != 0 ;
 -- count 
 ---------
 --  5381
 --(1 row)
 
-SELECT count(distinct usr) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107) AND balance_owed != 0 ;
+SELECT count(distinct usr) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107,117) AND balance_owed != 0 ;
 --  count 
 -- -------
 --    2338
 
 DROP TABLE mlb.laurentian_fines;
-CREATE TABLE mlb.laurentian_fines AS SELECT * FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107) AND balance_owed != 0 ORDER BY usr;
+CREATE TABLE mlb.laurentian_fines AS SELECT * FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107,117) AND balance_owed != 0 ORDER BY usr;
 -- SELECT 5377
 
 ALTER TABLE mlb.laurentian_fines add column title text;
