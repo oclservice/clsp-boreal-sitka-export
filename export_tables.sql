@@ -1,16 +1,17 @@
 -- 1) export items
 
 \copy (
-  SELECT co.*, ca.label, ca.label_class, ca.record, ou.name as libraryname, cl.name as copylocation, st.name as statusname
+  SELECT co.*, ca.label, ca.label_class, ca.record, ou.name AS libraryname, cl.name AS copylocation, st.name AS statusname
   FROM config.copy_status st, asset.copy co, asset.call_number ca, actor.org_unit ou, asset.copy_location cl
   WHERE co.deleted IS FALSE
     AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107)
-    AND ca.deleted IS FALSE
     AND ca.owning_lib IN (105,113,130,104,108,103,132,151,131,150,107)
+    AND ca.deleted IS FALSE
     AND co.call_number = ca.id
     AND co.circ_lib = ou.id
     AND co.location = cl.id
     AND co.status = st.id
+    AND ou.opac_visible IS TRUE
 ) to items.csv delimiter ',' CSV header
 
 --item notes
@@ -143,7 +144,17 @@
 
 --patron bookbags
 
-\copy (SELECT target_biblio_record_entry,barcode,name,title FROM container.biblio_record_entry_bucket c, container.biblio_record_entry_bucket_item i, reporter.super_simple_record r,actor.usr u, actor.card ca WHERE btype = 'bookbag' AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107) AND c.id = i.bucket AND i.target_biblio_record_entry = r.id AND owner = u.id AND u.card = ca.id order by owner,name,title) to patron_bookbags.csv delimiter ',' csv header
+\copy (
+  SELECT target_biblio_record_entry, barcode, name, title
+  FROM container.biblio_record_entry_bucket c, container.biblio_record_entry_bucket_item i, reporter.super_simple_record r,actor.usr u, actor.card ca
+  WHERE btype = 'bookbag'
+    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107)
+    AND c.id = i.bucket
+    AND i.target_biblio_record_entry = r.id
+    AND owner = u.id
+    AND u.card = ca.id
+    ORDER BY owner, name, title
+) to patron_bookbags.csv delimiter ',' csv header
 -- 30775
 
 --export holds
@@ -160,12 +171,24 @@ conifer=# SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113
 ---------
 --    17
 
-\copy (SELECT * FROM action.hold_request WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107) AND cancel_time IS NULL AND fulfillment_time IS NULL AND (expire_time > now() or expire_time IS NULL)) to hold.csv delimiter ',' CSV header
+\copy (
+  SELECT *
+  FROM action.hold_request
+  WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107)
+    AND cancel_time IS NULL
+    AND fulfillment_time IS NULL
+    AND (expire_time > now() or expire_time IS NULL)
+) to hold.csv delimiter ',' CSV header
 -- COPY 17
 
 --export circ
 
-\copy (SELECT * FROM action.circulation WHERE circ_lib IN (105,113,130,104,108,103,132,151,131,150,107) AND checkin_time IS NULL) to circ.csv delimiter ',' CSV header
+\copy (
+  SELECT *
+  FROM action.circulation
+  WHERE circ_lib IN (105,113,130,104,108,103,132,151,131,150,107)
+  AND checkin_time IS NULL
+) to circ.csv delimiter ',' CSV header
 -- COPY 3398
 
 --fines
@@ -181,39 +204,49 @@ SELECT count(distinct usr) FROM money.billable_xact_summary_location_view  WHERE
 -- -------
 --    2338
 
-drop table mlb.laurentian_fines;
-create table mlb.laurentian_fines as SELECT * FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107) AND balance_owed != 0 order by usr;
+DROP TABLE mlb.laurentian_fines;
+CREATE TABLE mlb.laurentian_fines AS SELECT * FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107) AND balance_owed != 0 ORDER BY usr;
 -- SELECT 5377
 
-alter table mlb.laurentian_fines add column title text;
-alter table mlb.laurentian_fines add column barcode text;
+ALTER TABLE mlb.laurentian_fines add column title text;
+ALTER TABLE mlb.laurentian_fines add column barcode text;
 --grab title 
-update mlb.laurentian_fines a set title =  r.title FROM reporter.super_simple_record r, action.circulation ci, asset.copy co, asset.call_number ca WHERE a.id = ci.id AND ci.target_copy = co.id AND co.call_number = ca.id AND ca.record = r.id;
+UPDATE mlb.laurentian_fines a
+SET title =  r.title
+FROM reporter.super_simple_record r, action.circulation ci, asset.copy co, asset.call_number ca
+WHERE a.id = ci.id
+  AND ci.target_copy = co.id
+  AND co.call_number = ca.id
+  AND ca.record = r.id;
 -- UPDATE 4032
 
-update mlb.laurentian_fines a set barcode =  co.barcode FROM action.circulation ci, asset.copy co WHERE a.id = ci.id AND ci.target_copy = co.id ;
+UPDATE mlb.laurentian_fines a
+SET barcode =  co.barcode
+FROM action.circulation ci, asset.copy co
+WHERE a.id = ci.id
+AND ci.target_copy = co.id ;
 --UPDATE 4032
 
 
-\copy (SELECT * FROM mlb.laurentian_fines order by usr) to fines.csv delimiter ',' CSV header
+\copy (SELECT * FROM mlb.laurentian_fines ORDER BY usr) to fines.csv delimiter ',' CSV header
 -- COPY 5377
 
 --codes
 
 --org units
-\copy (SELECT * FROM actor.org_unit order by id) to org.csv delimiter ',' CSV header
+\copy (SELECT * FROM actor.org_unit ORDER BY id) to org.csv delimiter ',' CSV header
 -- COPY 49
 
 --patron profile types
-\copy (SELECT * FROM permission.grp_tree order by id) to patrontype.csv delimiter ',' CSV header
+\copy (SELECT * FROM permission.grp_tree ORDER BY id) to patrontype.csv delimiter ',' CSV header
 -- COPY 35
 
 --item circ modifiers
-\copy (SELECT * FROM config.circ_modifier order by code) to item_circ_modifiers.csv delimiter ',' CSV header
+\copy (SELECT * FROM config.circ_modifier ORDER BY code) to item_circ_modifiers.csv delimiter ',' CSV header
 -- COPY 90
 
 --item locations
-\copy (SELECT * FROM asset.copy_location order by owning_lib, name) to item_location.csv delimiter ',' CSV header
+\copy (SELECT * FROM asset.copy_location ORDER BY owning_lib, name) to item_location.csv delimiter ',' CSV header
 -- COPY 815
 
 
