@@ -175,6 +175,7 @@ conifer=# SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113
   SELECT *
   FROM action.hold_request
   WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
+    AND capture_time IS NOT NULL
     AND cancel_time IS NULL
     AND fulfillment_time IS NULL
     AND (expire_time > now() or expire_time IS NULL)
