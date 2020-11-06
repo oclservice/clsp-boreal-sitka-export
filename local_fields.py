@@ -219,21 +219,94 @@ def deoclcnum_french_records(record):
         for i, lang in enumerate(f.subfields):
             if i and f.subfields[i - 1] == "a":
                 if "fre" in lang:
-                    for i in record.get_fields("035"):
-                        for idnum in i.get_subfields("a"):
+                    for r in record.get_fields("035"):
+                        for idnum in r.get_subfields("a"):
                             if "OCoLC" in idnum:
-                                record.remove_field(i)
+                                record.remove_field(r)
                 # Use multiple $a to conform to 041 requirements
                 if lang == "engfre":
                     f.subfields[i] = "eng"
                     f.add_subfield("a", "fre")
 
 
+def munge_mfhd(record):
+    """
+    Create MFHD records that make Alma happier
+
+    Alma allows you to specify one MFHD field for summary holdings. We use 866.
+
+    But we also use 867 for supplementary materials, 900 for internal notes,
+    590 for missing materials, and 591 to indicate incomplete materials. We'll
+    have to translate them all into multiple 866s with different subfields,
+    e.g.:
+
+    866    $a (1988) - (1999)
+    867  0 $a Table of contents: 1988, 1989-1992, 1993-1999
+    900    $a Cancelled Oct.19/99; CANCELLATION EFFECTIVE AS PER EXPIRY DATE (Dec. 1999)
+    591    $a 1990-1992
+
+    becomes:
+
+    866    $a (1988) - (1999)
+    866    $a Supplemental: Table of contents: 1988, 1989-1992, 1993-1999
+    866    $y Cancelled Oct.19/99; CANCELLATION EFFECTIVE AS PER EXPIRY DATE (Dec. 1999)
+    866    $z Incomplete: 1990-1992
+    """
+
+    for f in record.get_fields("867"):
+        for a in f.get_subfields("a"):
+            nf = pymarc.field.Field(
+                tag="866",
+                indicators=[" ", " "],
+                subfields=["a", "Supplemental: {}".format(a)],
+            )
+            record.add_ordered_field(nf)
+        record.remove_field(f)
+
+    for f in record.get_fields("868"):
+        for a in f.get_subfields("a"):
+            nf = pymarc.field.Field(
+                tag="866",
+                indicators=[" ", " "],
+                subfields=["a", "Indexes: {}".format(a)],
+            )
+            record.add_ordered_field(nf)
+        record.remove_field(f)
+
+    for f in record.get_fields("590"):
+        for a in f.get_subfields("a"):
+            nf = pymarc.field.Field(
+                tag="866",
+                indicators=[" ", " "],
+                subfields=["z", "Missing: {}".format(a)],
+            )
+            record.add_ordered_field(nf)
+        record.remove_field(f)
+
+    for f in record.get_fields("591"):
+        for a in f.get_subfields("a"):
+            nf = pymarc.field.Field(
+                tag="866",
+                indicators=[" ", " "],
+                subfields=["z", "Incomplete: {}".format(a)],
+            )
+            record.add_ordered_field(nf)
+        record.remove_field(f)
+
+    for f in record.get_fields("900"):
+        for a in f.get_subfields("a"):
+            nf = pymarc.field.Field(
+                tag="866", indicators=[" ", " "], subfields=["y", a]
+            )
+            record.add_ordered_field(nf)
+        record.remove_field(f)
+
+
 def main():
 
     mrcs = glob.glob("lumarc*")
     mrcs = glob.glob("laurentian.mrc")
-    mrcs = glob.glob("laurentian_test.mrc")
+    # mrcs = glob.glob("laurentian_test.mrc")
     today = datetime.date.today().strftime("%Y%m%d")
     local_fields = (
         "770",
@@ -277,13 +350,14 @@ def main():
                     else:
                         for field in record.get_fields("852"):
                             update_locations(field)
+                        munge_mfhd(record)
                         mfhdf.write(record.as_marc())
             except Exception as e:
                 traceback.print_exc()
                 print("{} : {}".format(mrc, e))
                 continue
     for note in sorted(url_notes):
-        print("{}\n".format(note))
+        print("{}".format(note))
 
 
 if __name__ == "__main__":
