@@ -12,7 +12,7 @@
     AND co.location = cl.id
     AND co.status = st.id
     AND ou.opac_visible IS TRUE
-) to items.csv delimiter ',' CSV header
+) TO OCUL_LU_items.csv delimiter ',' CSV header
 
 --item notes
 
@@ -31,7 +31,7 @@
           AND owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
       )
   )
-) to item_notes.csv delimiter ',' CSV header
+) TO OCUL_LU_item_notes.csv delimiter ',' CSV header
 -- COPY 385
 
 --item stat cats
@@ -53,7 +53,7 @@
             AND owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
       )
   )
-) to item_stats.csv delimiter ',' CSV header
+) TO OCUL_LU_item_stats.csv delimiter ',' CSV header
 -- COPY 29229
 
 -- 3) export the patron data
@@ -65,7 +65,7 @@
   FROM actor.usr
   WHERE deleted IS FALSE
     AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
-) to patron.csv delimiter ',' CSV header
+) TO OCUL_LU_patron.csv delimiter ',' CSV header
 -- COPY 77658
 
 --patron barcodes
@@ -79,7 +79,7 @@
       WHERE deleted IS FALSE
       AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
-) to patron_barcode.csv delimiter ',' CSV header
+) TO OCUL_LU_patron_barcode.csv delimiter ',' CSV header
 -- COPY 77728
 
 --patron settings
@@ -93,7 +93,7 @@
     WHERE deleted IS FALSE
       AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
-) to patron_setting.csv delimiter ',' CSV header
+) TO OCUL_LU_patron_setting.csv delimiter ',' CSV header
 -- COPY 1297
 
 --patron notes
@@ -107,7 +107,7 @@
     WHERE deleted IS FALSE
       AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
-) to patron_notes.csv delimiter ',' CSV header
+) TO OCUL_LU_patron_notes.csv delimiter ',' CSV header
 -- COPY 1987
 
 --patron address
@@ -121,7 +121,7 @@
     WHERE deleted IS FALSE
     AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
-) to patron_address.csv delimiter ',' CSV header
+) TO OCUL_LU_patron_address.csv delimiter ',' CSV header
 -- COPY 25395
 
 --patron stat cats
@@ -139,7 +139,7 @@
     WHERE deleted IS FALSE
     AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
-) to patron.stat_cat.csv delimiter ',' csv header
+) TO OCUL_LU_patron.stat_cat.csv delimiter ',' csv header
 -- 19299
 
 --patron bookbags
@@ -154,7 +154,7 @@
     AND owner = u.id
     AND u.card = ca.id
     ORDER BY owner, name, title
-) to patron_bookbags.csv delimiter ',' csv header
+) TO OCUL_LU_patron_bookbags.csv delimiter ',' csv header
 -- 30775
 
 --export holds
@@ -166,7 +166,7 @@ SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,1
 --     0
 --(1 row)
 
-conifer=# SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107,117) AND cancel_time IS NULL AND fulfillment_time IS NULL AND (expire_time > now() or expire_time IS NULL);
+-- conifer=# SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107,117) AND cancel_time IS NULL AND fulfillment_time IS NULL AND (expire_time > now() or expire_time IS NULL);
 -- count 
 ---------
 --    17
@@ -179,7 +179,7 @@ conifer=# SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113
     AND cancel_time IS NULL
     AND fulfillment_time IS NULL
     AND (expire_time > now() or expire_time IS NULL)
-) to hold.csv delimiter ',' CSV header
+) TO OCUL_LU_hold.csv delimiter ',' CSV header
 -- COPY 17
 
 --export circ
@@ -189,7 +189,7 @@ conifer=# SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113
   FROM action.circulation
   WHERE circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
   AND checkin_time IS NULL
-) to circ.csv delimiter ',' CSV header
+) TO OCUL_LU_circ.csv delimiter ',' CSV header
 -- COPY 3398
 
 --fines
@@ -229,30 +229,30 @@ AND ci.target_copy = co.id ;
 --UPDATE 4032
 
 
-\copy (SELECT * FROM mlb.laurentian_fines ORDER BY usr) to fines.csv delimiter ',' CSV header
+\copy (SELECT * FROM mlb.laurentian_fines ORDER BY usr) TO OCUL_LU_fines.csv delimiter ',' CSV header
 -- COPY 5377
 
 --codes
 
 --org units
-\copy (SELECT * FROM actor.org_unit ORDER BY id) to org.csv delimiter ',' CSV header
+\copy (SELECT * FROM actor.org_unit ORDER BY id) TO OCUL_LU_org.csv delimiter ',' CSV header
 -- COPY 49
 
 --patron profile types
-\copy (SELECT * FROM permission.grp_tree ORDER BY id) to patrontype.csv delimiter ',' CSV header
+\copy (SELECT * FROM permission.grp_tree ORDER BY id) TO OCUL_LU_patrontype.csv delimiter ',' CSV header
 -- COPY 35
 
 --item circ modifiers
-\copy (SELECT * FROM config.circ_modifier ORDER BY code) to item_circ_modifiers.csv delimiter ',' CSV header
+\copy (SELECT * FROM config.circ_modifier ORDER BY code) TO OCUL_LU_item_circ_modifiers.csv delimiter ',' CSV header
 -- COPY 90
 
 --item locations
-\copy (SELECT * FROM asset.copy_location ORDER BY owning_lib, name) to item_location.csv delimiter ',' CSV header
+\copy (SELECT * FROM asset.copy_location ORDER BY owning_lib, name) TO OCUL_LU_item_location.csv delimiter ',' CSV header
 -- COPY 815
 
 
 --item status
-\copy (SELECT * FROM config.copy_status) to item_status.csv delimiter ',' CSV header
+\copy (SELECT * FROM config.copy_status) TO OCUL_LU_item_status.csv delimiter ',' CSV header
 -- COPY 20
 
 --P2E
@@ -265,5 +265,5 @@ AND ci.target_copy = co.id ;
     AND acn.owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
     AND acn.label = '##URI##'
   ORDER BY acn.record
-) to p2e.csv DELIMITER ',' CSV header
+) TO OCUL_LU_p2e.csv DELIMITER ',' CSV header
 
