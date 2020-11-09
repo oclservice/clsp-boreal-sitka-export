@@ -59,24 +59,38 @@
 -- 3) export the patron data
 
 --patrons
+CREATE OR REPLACE VIEW conifer.usr_with_authname AS 
+  SELECT DISTINCT au.*, COALESCE(REGEXP_REPLACE(email, '^(.*?)@(laurentian.ca|laurentienne.ca|huntingtonu.ca|usudbury.ca)', '\1'), email, usrname) AS authname
+  FROM actor.usr au
+  WHERE au.deleted IS FALSE
+    AND (
+      EXISTS (
+        SELECT 1 FROM 
+        action.circulation ac
+        WHERE au.id = ac.usr
+          AND ac.xact_start > '2015-09-01'::DATE
+      )
+    OR (au.profile IN (3, 111, 131))
+    OR (au.profile = 129 AND create_date > '2018-01-01'::DATE )
+  )
+  ORDER BY au.id;
 
 \copy (
   SELECT *
-  FROM actor.usr
-  WHERE deleted IS FALSE
-    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
+  FROM conifer.usr_with_authname
+  WHERE home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
 ) TO OCUL_LU_patron.csv delimiter ',' CSV header
--- COPY 77658
+-- COPY 10943
 
 --patron barcodes
 \copy (
   SELECT *
-  FROM actor.card
+  FROM actor.card ac
   WHERE active IS TRUE
-    AND usr IN (
-      SELECT id
-      FROM actor.usr
-      WHERE deleted IS FALSE
+    AND EXISTS (
+      SELECT 1
+      FROM conifer.usr_with_authname
+      WHERE card = ac.id
       AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 ) TO OCUL_LU_patron_barcode.csv delimiter ',' CSV header
@@ -86,11 +100,11 @@
 
 \copy (
   SELECT *
-  FROM actor.usr_setting
-  WHERE usr IN (
-    SELECT id
-    FROM actor.usr
-    WHERE deleted IS FALSE
+  FROM actor.usr_setting aus
+  WHERE EXISTS (
+    SELECT 1
+    FROM conifer.usr_with_authname au
+    WHERE au.id = aus.usr
       AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 ) TO OCUL_LU_patron_setting.csv delimiter ',' CSV header
@@ -100,11 +114,11 @@
 
 \copy (
   SELECT *
-  FROM actor.usr_note
-  WHERE usr IN (
-    SELECT id
-    FROM actor.usr
-    WHERE deleted IS FALSE
+  FROM actor.usr_note aun
+  WHERE EXISTS (
+    SELECT 1
+    FROM conifer.usr_with_authname au
+    WHERE au.id = aun.usr
       AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 ) TO OCUL_LU_patron_notes.csv delimiter ',' CSV header
@@ -114,12 +128,12 @@
 
 \copy (
   SELECT *
-  FROM actor.usr_address
-  WHERE usr IN (
-    SELECT id
-    FROM actor.usr
-    WHERE deleted IS FALSE
-    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
+  FROM actor.usr_address aua
+  WHERE EXISTS (
+    SELECT 1
+    FROM conifer.usr_with_authname au
+    WHERE au.id = aua.usr
+      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 ) TO OCUL_LU_patron_address.csv delimiter ',' CSV header
 -- COPY 25395
@@ -127,16 +141,16 @@
 --patron stat cats
 \copy (
   SELECT m.target_usr, st.name,ste.value
-  FROM actor.stat_cat st, actor.stat_cat_entry ste, actor.usr u, actor.stat_cat_entry_usr_map m
+  FROM actor.stat_cat st, actor.stat_cat_entry ste, conifer.usr_with_authname u, actor.stat_cat_entry_usr_map m
   WHERE u.id = m.target_usr
   AND u.deleted IS FALSE
   AND m.stat_cat = st.id
   AND m.stat_cat_entry = ste.value
   AND m.stat_cat = ste.stat_cat
-  AND m.target_usr IN (
-    SELECT id
-    FROM actor.usr
-    WHERE deleted IS FALSE
+  AND EXISTS  (
+    SELECT 1
+    FROM conifer.usr_with_authname au
+    WHERE au.id = m.target_usr
     AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 ) TO OCUL_LU_patron.stat_cat.csv delimiter ',' csv header
@@ -146,7 +160,7 @@
 
 \copy (
   SELECT target_biblio_record_entry, barcode, name, title
-  FROM container.biblio_record_entry_bucket c, container.biblio_record_entry_bucket_item i, reporter.super_simple_record r,actor.usr u, actor.card ca
+  FROM container.biblio_record_entry_bucket c, container.biblio_record_entry_bucket_item i, reporter.super_simple_record r, conifer.usr_with_authname u, actor.card ca
   WHERE btype = 'bookbag'
     AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
     AND c.id = i.bucket
