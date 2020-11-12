@@ -68,10 +68,10 @@ CREATE OR REPLACE VIEW conifer.usr_with_authname AS
         SELECT 1 FROM 
         action.circulation ac
         WHERE au.id = ac.usr
-          AND ac.xact_start > '2015-09-01'::DATE
+          AND ac.xact_start > '2011-09-01'::DATE
       )
     OR (au.profile IN (3, 111, 131))
-    OR (au.profile = 129 AND create_date > '2018-01-01'::DATE )
+    OR (au.profile = 129 AND create_date > '2017-01-01'::DATE )
   )
   ORDER BY au.id;
 
@@ -186,8 +186,9 @@ SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,1
 --    17
 
 \copy (
-  SELECT *
-  FROM action.hold_request
+  SELECT ahr.*, aou.name AS libraryname
+  FROM action.hold_request ahr
+    INNER JOIN actor.org_unit aou ON ahr.request_lib = aou.id
   WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
     AND capture_time IS NOT NULL
     AND cancel_time IS NULL
@@ -199,8 +200,9 @@ SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,1
 --export circ
 
 \copy (
-  SELECT *
-  FROM action.circulation
+  SELECT ac.*, aou.name AS libraryname
+  FROM action.circulation ac
+    INNER JOIN actor.org_unit aou ON ac.circ_lib = aou.id
   WHERE circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
   AND checkin_time IS NULL
 ) TO OCUL_LU_circ.csv delimiter ',' CSV header
@@ -220,7 +222,13 @@ SELECT count(distinct usr) FROM money.billable_xact_summary_location_view  WHERE
 --    2338
 
 DROP TABLE mlb.laurentian_fines;
-CREATE TABLE mlb.laurentian_fines AS SELECT * FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107,117) AND balance_owed != 0 ORDER BY usr;
+CREATE TABLE mlb.laurentian_fines AS
+  SELECT mv.*, aou.name AS libraryname
+  FROM money.billable_xact_summary_location_view mv
+  INNER JOIN actor.org_unit aou ON mv.billing_location = aou.id
+  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107,117)
+    AND balance_owed !=
+  0 ORDER BY usr;
 -- SELECT 5377
 
 ALTER TABLE mlb.laurentian_fines add column title text;
