@@ -203,6 +203,12 @@ def remove_other_856(record, field):
             record.remove_field(field)
 
 
+def remove_fields(record, fields):
+    "Remove specified fields from bib records"
+    for f in record.get_fields(*fields):
+        record.remove_field(f)
+
+
 def update_lu_proxy(field):
     "Move to a secure proxy prefix for legacy records"
     old_proxy = "http://librweb.laurentian.ca"
@@ -366,6 +372,7 @@ def main():
                             url_notes[note] = 1
 
                     if record.get_fields("245") or record.get_fields("240"):
+                        remove_fields(record, ("596", "852"))
                         localf.write(record.as_marc())
                     else:
                         for field in record.get_fields("852"):
