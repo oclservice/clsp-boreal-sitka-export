@@ -209,6 +209,56 @@ def remove_fields(record, fields):
         record.remove_field(f)
 
 
+def normalize_donations(record):
+    """
+    Normalize values in 773 donation fields, and flip to 594
+
+    Follow https://web.library.yale.edu/cataloging/gifts-MFHD-541 but ignore
+    the punctuation.
+
+    From:
+
+    773 0   ‡t Fonds Gaétan Gervais, P187.
+
+    To:
+
+    594 1_  ‡c Gift ‡a Fonds Gaétan Gervais, P187 ‡9 LOCAL
+    """
+
+    norms = {
+        "The Jean Paul Carlhian Collection": "The Jean Paul Carlhian Collection",
+        "The Jean Paul Calhian Collection": "The Jean Paul Carlhian Collection",
+        "The Jean Paul Carlhian Collection ": "The Jean Paul Carlhian Collection",
+        '"The Jean Paul Carlhian Collection"': "The Jean Paul Carlhian Collection",
+        "The Jean Paul Carlhian Collection.": "The Jean Paul Carlhian Collection",
+        "Fonds Gaétan Gervais, P187.": "Fonds Gaétan Gervais, P187",
+        "Fonds Gaétan Gervais, P187,": "Fonds Gaétan Gervais, P187",
+        "The Henry and Janna Best Fine Arts Collection.": "The Henry and Janna Best Fine Arts Collection",
+        "The Henry and Janna best Fine Arts Collection.": "The Henry and Janna Best Fine Arts Collection",
+        "The Henry and Janna best Fine Arts Collection. ": "The Henry and Janna Best Fine Arts Collection",
+        "The Henry & Janna Best Collection": "The Henry and Janna Best Fine Arts Collection",
+    }
+
+    for f in record.get_fields("773"):
+        for i, val in enumerate(f.subfields):
+            if i and (f.subfields[i - 1] in ("a", "r", "t")) and val in norms.keys():
+                record.add_ordered_field(
+                    pymarc.Field(
+                        "594", ["1", " "], ("c", "Gift", "a", norms[val], "9", "LOCAL")
+                    )
+                )
+                record.remove_field(f)
+
+    for r in record.get_fields("773"):
+        nf = pymarc.Field(tag="594", indicators=[r.indicator1, r.indicator2])
+        for sf in r:
+            nf.add_subfield(sf[0], sf[1])
+        nf.add_subfield("9", "LOCAL")
+        record.add_ordered_field(nf)
+        # Remove the offending field
+        record.remove_field(r)
+
+
 def update_lu_proxy(field):
     "Move to a secure proxy prefix for legacy records"
     old_proxy = "http://librweb.laurentian.ca"
@@ -334,6 +384,7 @@ def main():
     # mrcs = glob.glob("laurentian_test.mrc")
     today = datetime.date.today().strftime("%Y%m%d")
     local_fields = (
+        "598",
         "770",
         "771",
         "772",
@@ -361,6 +412,7 @@ def main():
                         print(ctr)
                     deoclcnum_french_records(record)
                     deoclcnum_eresources(record)
+                    normalize_donations(record)
                     for field in record.get_fields(*local_fields):
                         field.add_subfield("9", "LOCAL")
                     for field in record.get_fields("856"):
