@@ -218,15 +218,34 @@ def deoclcnum_french_records(record):
     for f in record.get_fields("041"):
         for i, lang in enumerate(f.subfields):
             if i and f.subfields[i - 1] == "a":
-                if "fre" in lang:
-                    for r in record.get_fields("035"):
-                        for idnum in r.get_subfields("a"):
-                            if "OCoLC" in idnum:
-                                record.remove_field(r)
+                if lang == "fre":
+                    flip_035_to_095(record)
                 # Use multiple $a to conform to 041 requirements
-                if lang == "engfre":
+                elif lang == "engfre":
                     f.subfields[i] = "eng"
                     f.add_subfield("a", "fre")
+
+
+def deoclcnum_eresources(record):
+    "Prevent eresource records from matching records in the NZ"
+    for f in record.get_fields("856"):
+        for i, val in enumerate(f.subfields):
+            if i and f.subfields[i - 1] == "9":
+                flip_035_to_095(record)
+
+
+def flip_035_to_095(record):
+    "Avoid matching on the 035 by moving it to the 095"
+    for r in record.get_fields("035"):
+        for idnum in r.get_subfields("a"):
+            if "OCoLC" in idnum:
+                # Copy identifier to a new 095 field
+                nf = pymarc.Field(tag="095", indicators=[r.indicator1, r.indicator2])
+                for sf in r:
+                    nf.add_subfield(sf[0], sf[1])
+                record.add_ordered_field(nf)
+                # Remove the offending field
+                record.remove_field(r)
 
 
 def munge_mfhd(record):
@@ -335,6 +354,7 @@ def main():
                     if ctr % 1000 == 0:
                         print(ctr)
                     deoclcnum_french_records(record)
+                    deoclcnum_eresources(record)
                     for field in record.get_fields(*local_fields):
                         field.add_subfield("9", "LOCAL")
                     for field in record.get_fields("856"):
