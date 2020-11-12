@@ -351,8 +351,10 @@ def main():
                         for field in record.get_fields("852"):
                             update_locations(field)
                         if not record.get_fields("901"):
-                            print("No 901 for {}".format(record.get_fields("001")[0].data))
-                        #munge_mfhd(record)
+                            print(
+                                "No 901 for {}".format(record.get_fields("001")[0].data)
+                            )
+                        # munge_mfhd(record)
                         mfhdf.write(record.as_marc())
             except Exception as e:
                 traceback.print_exc()
