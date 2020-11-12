@@ -227,8 +227,8 @@ CREATE TABLE mlb.laurentian_fines AS
   FROM money.billable_xact_summary_location_view mv
   INNER JOIN actor.org_unit aou ON mv.billing_location = aou.id
   WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107,117)
-    AND balance_owed !=
-  0 ORDER BY usr;
+    AND balance_owed != 0
+  ORDER BY usr;
 -- SELECT 5377
 
 ALTER TABLE mlb.laurentian_fines add column title text;
@@ -251,7 +251,7 @@ AND ci.target_copy = co.id ;
 --UPDATE 4032
 
 
-\copy (SELECT * FROM mlb.laurentian_fines ORDER BY usr) TO OCUL_LU_fines.csv delimiter ',' CSV header
+\copy (SELECT * FROM mlb.laurentian_fines WHERE balance_owed > 0 ORDER BY usr) TO OCUL_LU_fines.csv delimiter ',' CSV header
 -- COPY 5377
 
 --codes
