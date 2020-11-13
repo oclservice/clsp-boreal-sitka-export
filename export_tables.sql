@@ -1,18 +1,46 @@
 -- 1) export items
 
-\copy (
-  SELECT co.*, ca.label, ca.label_class, ca.record, ou.name AS libraryname, cl.name AS copylocation, st.name AS statusname
-  FROM config.copy_status st, asset.copy co, asset.call_number ca, actor.org_unit ou, asset.copy_location cl
-  WHERE co.deleted IS FALSE
-    AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
-    AND ca.owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
-    AND ca.deleted IS FALSE
-    AND co.call_number = ca.id
-    AND co.circ_lib = ou.id
-    AND co.location = cl.id
-    AND co.status = st.id
-    AND ou.opac_visible IS TRUE
-) TO OCUL_LU_items.csv delimiter ',' CSV header
+\o OCUL_LU_items.csv
+
+COPY (
+  WITH items AS (SELECT co.*, ca.label, ca.label_class, ca.record, ou.name AS libraryname, cl.name AS copylocation, st.name AS statusname
+    FROM config.copy_status st, asset.copy co, asset.call_number ca, actor.org_unit ou, asset.copy_location cl
+    WHERE co.deleted IS FALSE
+      AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
+      AND ca.owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
+      AND ca.deleted IS FALSE
+      AND co.call_number = ca.id
+      AND co.circ_lib = ou.id
+      AND co.location = cl.id
+      AND co.status = st.id
+      AND ou.opac_visible IS TRUE
+  ), circs AS (
+    SELECT target_copy As item, COUNT(*) AS num_circs
+    FROM action.circulation
+    GROUP BY target_copy
+  ), last_circ AS (
+    SELECT target_copy AS item, MAX(checkin_time) AS last_circ
+    FROM action.circulation
+    GROUP BY target_copy
+  ), inhouses AS (
+    SELECT item, COUNT(*) AS num_inhouse
+    FROM action.in_house_use
+    GROUP BY item
+  ), last_inhouse AS (
+    SELECT item, MAX(use_time) AS last_inhouse
+    FROM action.in_house_use
+    GROUP BY item
+  )
+  SELECT items.*, circs.num_circs, last_circ.last_circ, inhouses.num_inhouse, last_inhouse.last_inhouse
+  FROM items
+    LEFT JOIN circs ON circs.item = items.id
+    LEFT JOIN last_circ ON last_circ.item = items.id
+    LEFT JOIN inhouses ON inhouses.item = items.id
+    LEFT JOIN last_inhouse ON last_inhouse.item = items.id
+)
+TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
+
+\o
 
 --item notes
 
@@ -185,16 +213,21 @@ SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,1
 ---------
 --    17
 
-\copy (
-  SELECT ahr.*, aou.name AS libraryname
+\o OCUL_LU_hold.csv
+
+COPY (
+  SELECT ahr.*, aou.name AS request_library, aou2.name AS pickup_library
   FROM action.hold_request ahr
     INNER JOIN actor.org_unit aou ON ahr.request_lib = aou.id
+    INNER JOIN actor.org_unit aou2 ON ahr.pickup_lib = aou2.id
   WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
     AND capture_time IS NOT NULL
     AND cancel_time IS NULL
     AND fulfillment_time IS NULL
     AND (expire_time > now() or expire_time IS NULL)
-) TO OCUL_LU_hold.csv delimiter ',' CSV header
+) TO STDOUT (DELIMITER ',', FORMAT CSV, HEADER TRUE);
+
+\o
 -- COPY 17
 
 --export circ
