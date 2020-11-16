@@ -43,54 +43,6 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
 \o
 
---item notes
-\o OCUL_LU_item_notes.csv
-
-COPY (
-  SELECT * 
-  FROM asset.copy_note
-  WHERE owning_copy IN (
-    SELECT id
-    FROM asset.copy 
-    WHERE deleted IS FALSE
-      AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
-      AND call_number IN (
-        SELECT id
-        FROM asset.call_number
-        WHERE deleted IS FALSE
-          AND owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
-      )
-  )
-)
-TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
-
---item stat cats
-\o OCUL_LU_item_stats.csv
-
-COPY (
-  SELECT s.name, e.value, c.owning_copy
-  FROM asset.stat_cat s, asset.stat_cat_entry e, asset.stat_cat_entry_copy_map c
-  WHERE s.id = e.stat_cat
-    AND e.id = c.stat_cat_entry
-    AND c.owning_copy IN (
-      SELECT id
-      FROM asset.copy
-      WHERE deleted IS FALSE
-        AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
-        AND call_number IN (
-          SELECT id
-          FROM asset.call_number
-          WHERE deleted IS FALSE
-            AND owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
-      )
-  )
-)
-TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
-
 --patrons
 CREATE OR REPLACE VIEW conifer.usr_with_authname AS 
   SELECT DISTINCT au.*, COALESCE(REGEXP_REPLACE(email, '^(.*?)@(laurentian.ca|laurentienne.ca|huntingtonu.ca|usudbury.ca)', '\1'), email, usrname) AS authname
@@ -121,6 +73,7 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 \o
 
 --patron barcodes
+--KEEP
 \o OCUL_LU_patron_barcode.csv 
 
 COPY (
@@ -131,40 +84,6 @@ COPY (
       SELECT 1
       FROM conifer.usr_with_authname
       WHERE card = ac.id
-      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
-  )
-)
-TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
-
---patron settings
-\o OCUL_LU_patron_setting.csv
-
-COPY (
-  SELECT *
-  FROM actor.usr_setting aus
-  WHERE EXISTS (
-    SELECT 1
-    FROM conifer.usr_with_authname au
-    WHERE au.id = aus.usr
-      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
-  )
-)
-TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
-
---patron notes
-\o OCUL_LU_patron_notes.csv
-
-COPY (
-  SELECT *
-  FROM actor.usr_note aun
-  WHERE EXISTS (
-    SELECT 1
-    FROM conifer.usr_with_authname au
-    WHERE au.id = aun.usr
       AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
   )
 )
@@ -191,6 +110,7 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 \o
 
 --patron stat cats
+--KEEP
 \o OCUL_LU_preferred_language.csv
 
 COPY (
@@ -212,28 +132,7 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
 \o
 
---patron bookbags
-\o OCUL_LU_patron_bookbags.csv
-
-COPY (
-  SELECT target_biblio_record_entry, barcode, name, title
-  FROM container.biblio_record_entry_bucket c, container.biblio_record_entry_bucket_item i, reporter.super_simple_record r, conifer.usr_with_authname u, actor.card ca
-  WHERE btype = 'bookbag'
-    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
-    AND c.id = i.bucket
-    AND i.target_biblio_record_entry = r.id
-    AND owner = u.id
-    AND u.card = ca.id
-    ORDER BY owner, name, title
-)
-TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
-
 --export holds
-
---check for holds WHERE the pickup lib is not an algoma one
-SELECT count(*) FROM action.hold_request WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107,117) AND pickup_lib not IN (105,113,130,104,108,103,132,151,131,150,107,117) AND cancel_time IS NULL AND fulfillment_time IS NULL;
 
 --KEEP
 \o OCUL_LU_hold.csv
@@ -310,53 +209,6 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 \o
 
 --codes
-
---org units
-\o OCUL_LU_org.csv
-
-COPY (SELECT * FROM actor.org_unit ORDER BY id) TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
-
---patron profile types
-\o OCUL_LU_patrontype.csv
-
-COPY (
-  SELECT * FROM permission.grp_tree ORDER BY id
-)
-TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
-
---item circ modifiers
-\o OCUL_LU_item_circ_modifiers.csv
-
-COPY (
-  SELECT * FROM config.circ_modifier ORDER BY code
-)
-TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
-
---item locations
-\o OCUL_LU_item_location.csv
-COPY (
-  SELECT * FROM asset.copy_location ORDER BY owning_lib, name
-)
-TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
-
-
---item status
-\o OCUL_LU_item_status.csv
-
-COPY (
-  SELECT * FROM config.copy_status
-)
-TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
 
 --P2E
 --KEEP
