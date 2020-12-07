@@ -45,7 +45,17 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
 --patrons
 CREATE OR REPLACE VIEW conifer.usr_with_authname AS 
-  SELECT DISTINCT au.*, COALESCE(REGEXP_REPLACE(email, '^(.*?)@(laurentian.ca|laurentienne.ca|huntingtonu.ca|usudbury.ca)', '\1'), email, usrname) AS authname
+  SELECT DISTINCT id, card, profile, usrname, email, passwd, standing,
+  ident_type, ident_value, ident_type2, ident_value2, net_access_level,
+  photo_url, prefix, first_given_name, second_given_name, family_name, suffix,
+  alias, day_phone, evening_phone, other_phone, mailing_address,
+  billing_address, home_ou, dob, active, master_account, super_user, barred,
+  deleted, juvenile, usrgroup, claims_returned_count, credit_forward_balance,
+  last_xact_id, REGEXP_REPLACE(alert_message, '\n', ' ', 'g') AS alert_message,
+  create_date, expire_date, claims_never_checked_out_count, last_update_time,
+  pref_prefix, pref_first_given_name, pref_second_given_name, pref_family_name,
+  pref_suffix, name_keywords, name_kw_tsvector, guardian,
+  COALESCE(REGEXP_REPLACE(email, '^(.*?)@(laurentian.ca|laurentienne.ca|huntingtonu.ca|usudbury.ca)', '\1'), email, usrname) AS authname
   FROM actor.usr au
   WHERE au.deleted IS FALSE
     AND (
@@ -202,7 +212,13 @@ AND ci.target_copy = co.id ;
 \o OCUL_LU_fines.csv
 
 COPY (
-  SELECT * FROM mlb.laurentian_fines WHERE balance_owed > 0 ORDER BY usr
+  SELECT id, usr, xact_start, xact_finish, total_paid, last_payment_ts,
+  REGEXP_REPLACE(last_payment_note, '\n', ' ', 'g') AS last_payment_note,
+  last_payment_type, total_owed, last_billing_ts,
+  REGEXP_REPLACE(last_billing_note, '\n', ' ', 'g') AS last_billing_note,
+  last_billing_type, balance_owed, xact_type, billing_location, libraryname,
+  title, barcode
+ FROM mlb.laurentian_fines WHERE balance_owed > 0 ORDER BY usr
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
