@@ -131,6 +131,7 @@ COPY (
   AND m.stat_cat = st.id
   AND m.stat_cat_entry = ste.value
   AND m.stat_cat = ste.stat_cat
+  AND st.name = 'Preferred language'
   AND EXISTS  (
     SELECT 1
     FROM conifer.usr_with_authname au
