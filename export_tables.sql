@@ -1,9 +1,15 @@
--- 1) export items
+-- Find and replace "(135, 136, 137, 138, 139, 140, 141, 142)" to reflect the
+-- numeric IDs of all of the Boréal libraries in Sitka.
 
---KEEP
+-- Then export the tables from the database.
+-- The following command looks for your database password in .pgpass or prompts you for it.
+-- All files will be placed in your current working directory:
+-- psql -U <username> -h <hostname> -p <port> -d <database_name> -f export_tables.sql
+
+-- Then run the following command to export the MARC data:
+-- cat boreal_bib_ids.lst | /openils/bin/marc_export --replace_001 --encoding UTF-8 --items --uris > /tmp/boreal_marc_utf8.mrc
+
 \o BOREAL_items.csv
-
-
 
 COPY (
   WITH items AS (SELECT co.*, ca.label, ca.label_class, ca.record, ou.name AS libraryname, cl.name AS copylocation, st.name AS statusname
@@ -248,5 +254,3 @@ COPY (
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
 \o
 
--- Export MARC data
-cat boreal_bib_ids.lst | /openils/bin/marc_export --replace_001 --encoding UTF-8 --items --uris > /tmp/boreal_marc_utf8.mrc
