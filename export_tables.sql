@@ -223,3 +223,15 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
 
 \o
 
+-- Usernames that are not purely numeric and likely need to be addressed during migration
+\o non_numeric_usernames.lst
+COPY (
+  SELECT usrname
+  FROM actor.usr
+  WHERE home_ou IN (135, 136, 137, 138, 139, 140, 141, 142)
+    AND deleted IS FALSE
+    AND usrname !~ E'^[0-9]*$'
+)
+TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
+\o
+
