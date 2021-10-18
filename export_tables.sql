@@ -247,3 +247,6 @@ COPY (
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
 \o
+
+-- Export MARC data
+cat boreal_bib_ids.lst | /openils/bin/marc_export --replace_001 --encoding UTF-8 --items --uris > /tmp/boreal_marc_utf8.mrc
