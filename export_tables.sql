@@ -235,3 +235,15 @@ COPY (
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
 \o
 
+-- Get all bib record IDs
+\o boreal_bib_ids.lst
+COPY (
+  SELECT DISTINCT record
+  FROM asset.call_number acn
+    INNER JOIN biblio.record_entry bre ON acn.record = bre.id
+  WHERE bre.deleted IS FALSE
+    AND acn.deleted IS FALSE
+    AND acn.owning_lib IN (135, 136, 137, 138, 139, 140, 141, 142)
+)
+TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
+\o
