@@ -423,7 +423,7 @@ def main():
                         for note in field.get_subfields("y"):
                             url_notes[note] = 1
 
-                    if record.get_fields("245") or record.get_fields("240"):
+                    if record.get_fields("245") or record.get_fields("240") or record.get_fields("246"):
                         remove_fields(record, ("596", "852"))
                         localf.write(record.as_marc())
                     else:
@@ -432,6 +432,10 @@ def main():
                         if not record.get_fields("901"):
                             print(
                                 "No 901 for {}".format(record.get_fields("001")[0].data)
+                            )
+                        elif not record["901"]["r"]:
+                            print(
+                                "No 901 $r for {}".format(record.get_fields("001")[0].data)
                             )
                         # munge_mfhd(record)
                         mfhdf.write(record.as_marc())
