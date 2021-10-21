@@ -1,14 +1,20 @@
--- 1) export items
+-- Instructions:
+-- Export the tables from the database.
+-- The following command looks for your database password in .pgpass or prompts you for it.
+-- All files will be placed in your current working directory:
+-- psql -U <username> -h <hostname> -p <port> -d <database_name> -f export_tables.sql
 
---KEEP
-\o OCUL_LU_items.csv
+-- Then run the following command to export the MARC data:
+-- cat boreal_bib_ids.lst | /openils/bin/marc_export --replace_001 --encoding UTF-8 --items --uris > /tmp/boreal_marc_utf8.mrc
+
+\o BOREAL_items.csv
 
 COPY (
   WITH items AS (SELECT co.*, ca.label, ca.label_class, ca.record, ou.name AS libraryname, cl.name AS copylocation, st.name AS statusname
     FROM config.copy_status st, asset.copy co, asset.call_number ca, actor.org_unit ou, asset.copy_location cl
     WHERE co.deleted IS FALSE
-      AND circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
-      AND ca.owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
+      AND circ_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
+      AND ca.owning_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
       AND ca.deleted IS FALSE
       AND co.call_number = ca.id
       AND co.circ_lib = ou.id
@@ -66,17 +72,17 @@ CREATE OR REPLACE VIEW conifer.usr_with_authname AS
           AND ac.xact_start > '2011-09-01'::DATE
       )
     OR (au.profile IN (3, 111, 131))
-    OR (au.profile = 129 AND create_date > '2017-01-01'::DATE )
+    OR (au.profile = 129 AND create_date > '2016-01-01'::DATE )
   )
   ORDER BY au.id;
 
 --KEEP
-\o OCUL_LU_patron.csv
+\o BOREAL_patron.csv
 
 COPY (
   SELECT *
   FROM conifer.usr_with_authname
-  WHERE home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
+  WHERE home_ou IN (620, 621, 622, 623, 624, 625, 626, 627)
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
@@ -84,7 +90,7 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
 --patron barcodes
 --KEEP
-\o OCUL_LU_patron_barcode.csv 
+\o BOREAL_patron_barcode.csv 
 
 COPY (
   SELECT *
@@ -94,7 +100,7 @@ COPY (
       SELECT 1
       FROM conifer.usr_with_authname
       WHERE card = ac.id
-      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
+      AND home_ou IN (620, 621, 622, 623, 624, 625, 626, 627)
   )
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
@@ -103,7 +109,7 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
 --patron address
 --KEEP
-\o OCUL_LU_patron_address.csv
+\o BOREAL_patron_address.csv
 
 COPY (
   SELECT *
@@ -112,31 +118,7 @@ COPY (
     SELECT 1
     FROM conifer.usr_with_authname au
     WHERE au.id = aua.usr
-      AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
-  )
-)
-TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
-
-\o
-
---patron stat cats
---KEEP
-\o OCUL_LU_preferred_language.csv
-
-COPY (
-  SELECT m.target_usr AS usr, st.name,ste.value
-  FROM actor.stat_cat st, actor.stat_cat_entry ste, conifer.usr_with_authname u, actor.stat_cat_entry_usr_map m
-  WHERE u.id = m.target_usr
-  AND u.deleted IS FALSE
-  AND m.stat_cat = st.id
-  AND m.stat_cat_entry = ste.value
-  AND m.stat_cat = ste.stat_cat
-  AND st.name = 'Preferred language'
-  AND EXISTS  (
-    SELECT 1
-    FROM conifer.usr_with_authname au
-    WHERE au.id = m.target_usr
-    AND home_ou IN (105,113,130,104,108,103,132,151,131,150,107,117)
+      AND home_ou IN (620, 621, 622, 623, 624, 625, 626, 627)
   )
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
@@ -146,14 +128,14 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 --export holds
 
 --KEEP
-\o OCUL_LU_hold.csv
+\o BOREAL_hold.csv
 
 COPY (
   SELECT ahr.*, aou.name AS request_library, aou2.name AS pickup_library
   FROM action.hold_request ahr
     INNER JOIN actor.org_unit aou ON ahr.request_lib = aou.id
     INNER JOIN actor.org_unit aou2 ON ahr.pickup_lib = aou2.id
-  WHERE request_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
+  WHERE request_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
     AND capture_time IS NOT NULL
     AND cancel_time IS NULL
     AND fulfillment_time IS NULL
@@ -164,13 +146,13 @@ COPY (
 
 --export circ
 --KEEP
-\o OCUL_LU_circ.csv
+\o BOREAL_circ.csv
 
 COPY (
   SELECT ac.*, aou.name AS libraryname
   FROM action.circulation ac
     INNER JOIN actor.org_unit aou ON ac.circ_lib = aou.id
-  WHERE circ_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
+  WHERE circ_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
   AND checkin_time IS NULL
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
@@ -179,16 +161,16 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
 --fines
 
-SELECT count(*) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107,117) AND balance_owed  != 0 ;
+SELECT count(*) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (620, 621, 622, 623, 624, 625, 626, 627) AND balance_owed  != 0 ;
 
-SELECT count(distinct usr) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107,117) AND balance_owed != 0 ;
+SELECT count(distinct usr) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (620, 621, 622, 623, 624, 625, 626, 627) AND balance_owed != 0 ;
 
 DROP TABLE mlb.laurentian_fines;
 CREATE TABLE mlb.laurentian_fines AS
   SELECT mv.*, aou.name AS libraryname
   FROM money.billable_xact_summary_location_view mv
   INNER JOIN actor.org_unit aou ON mv.billing_location = aou.id
-  WHERE billing_location IN (105,113,130,104,108,103,132,151,131,150,107,117)
+  WHERE billing_location IN (620, 621, 622, 623, 624, 625, 626, 627)
     AND balance_owed != 0
   ORDER BY usr;
 
@@ -210,7 +192,7 @@ WHERE a.id = ci.id
 AND ci.target_copy = co.id ;
 
 --KEEP
-\o OCUL_LU_fines.csv
+\o BOREAL_fines.csv
 
 COPY (
   SELECT id, usr, xact_start, xact_finish, total_paid, last_payment_ts,
@@ -229,7 +211,7 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
 --P2E
 --KEEP
-\o OCUL_LU_p2e.csv
+\o BOREAL_p2e.csv
 
 COPY (
   SELECT acn.record, 'Portfolio' AS resource_type
@@ -237,11 +219,36 @@ COPY (
     INNER JOIN biblio.record_entry bre ON bre.id = acn.record
   WHERE acn.deleted IS FALSE
     AND bre.deleted IS FALSE
-    AND acn.owning_lib IN (105,113,130,104,108,103,132,151,131,150,107,117)
+    AND acn.owning_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
     AND acn.label = '##URI##'
   ORDER BY acn.record
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
 
+\o
+
+-- Usernames that are not purely numeric and likely need to be addressed during migration
+\o non_numeric_usernames.lst
+COPY (
+  SELECT usrname
+  FROM actor.usr
+  WHERE home_ou IN (620, 621, 622, 623, 624, 625, 626, 627)
+    AND deleted IS FALSE
+    AND usrname !~ E'^[0-9]*$'
+)
+TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
+\o
+
+-- Get all bib record IDs
+\o boreal_bib_ids.lst
+COPY (
+  SELECT DISTINCT record
+  FROM asset.call_number acn
+    INNER JOIN biblio.record_entry bre ON acn.record = bre.id
+  WHERE bre.deleted IS FALSE
+    AND acn.deleted IS FALSE
+    AND acn.owning_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
+)
+TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
 \o
 
