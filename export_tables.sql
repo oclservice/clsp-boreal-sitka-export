@@ -1,7 +1,5 @@
--- Find and replace "(135, 136, 137, 138, 139, 140, 141, 142)" to reflect the
--- numeric IDs of all of the Boréal libraries in Sitka.
-
--- Then export the tables from the database.
+-- Instructions:
+-- Export the tables from the database.
 -- The following command looks for your database password in .pgpass or prompts you for it.
 -- All files will be placed in your current working directory:
 -- psql -U <username> -h <hostname> -p <port> -d <database_name> -f export_tables.sql
@@ -15,8 +13,8 @@ COPY (
   WITH items AS (SELECT co.*, ca.label, ca.label_class, ca.record, ou.name AS libraryname, cl.name AS copylocation, st.name AS statusname
     FROM config.copy_status st, asset.copy co, asset.call_number ca, actor.org_unit ou, asset.copy_location cl
     WHERE co.deleted IS FALSE
-      AND circ_lib IN (135, 136, 137, 138, 139, 140, 141, 142)
-      AND ca.owning_lib IN (135, 136, 137, 138, 139, 140, 141, 142)
+      AND circ_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
+      AND ca.owning_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
       AND ca.deleted IS FALSE
       AND co.call_number = ca.id
       AND co.circ_lib = ou.id
@@ -84,7 +82,7 @@ CREATE OR REPLACE VIEW conifer.usr_with_authname AS
 COPY (
   SELECT *
   FROM conifer.usr_with_authname
-  WHERE home_ou IN (135, 136, 137, 138, 139, 140, 141, 142)
+  WHERE home_ou IN (620, 621, 622, 623, 624, 625, 626, 627)
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
@@ -102,7 +100,7 @@ COPY (
       SELECT 1
       FROM conifer.usr_with_authname
       WHERE card = ac.id
-      AND home_ou IN (135, 136, 137, 138, 139, 140, 141, 142)
+      AND home_ou IN (620, 621, 622, 623, 624, 625, 626, 627)
   )
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
@@ -120,7 +118,7 @@ COPY (
     SELECT 1
     FROM conifer.usr_with_authname au
     WHERE au.id = aua.usr
-      AND home_ou IN (135, 136, 137, 138, 139, 140, 141, 142)
+      AND home_ou IN (620, 621, 622, 623, 624, 625, 626, 627)
   )
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
@@ -137,7 +135,7 @@ COPY (
   FROM action.hold_request ahr
     INNER JOIN actor.org_unit aou ON ahr.request_lib = aou.id
     INNER JOIN actor.org_unit aou2 ON ahr.pickup_lib = aou2.id
-  WHERE request_lib IN (135, 136, 137, 138, 139, 140, 141, 142)
+  WHERE request_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
     AND capture_time IS NOT NULL
     AND cancel_time IS NULL
     AND fulfillment_time IS NULL
@@ -154,7 +152,7 @@ COPY (
   SELECT ac.*, aou.name AS libraryname
   FROM action.circulation ac
     INNER JOIN actor.org_unit aou ON ac.circ_lib = aou.id
-  WHERE circ_lib IN (135, 136, 137, 138, 139, 140, 141, 142)
+  WHERE circ_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
   AND checkin_time IS NULL
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
@@ -163,16 +161,16 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER TRUE);
 
 --fines
 
-SELECT count(*) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (135, 136, 137, 138, 139, 140, 141, 142) AND balance_owed  != 0 ;
+SELECT count(*) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (620, 621, 622, 623, 624, 625, 626, 627) AND balance_owed  != 0 ;
 
-SELECT count(distinct usr) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (135, 136, 137, 138, 139, 140, 141, 142) AND balance_owed != 0 ;
+SELECT count(distinct usr) FROM money.billable_xact_summary_location_view  WHERE billing_location IN (620, 621, 622, 623, 624, 625, 626, 627) AND balance_owed != 0 ;
 
 DROP TABLE mlb.laurentian_fines;
 CREATE TABLE mlb.laurentian_fines AS
   SELECT mv.*, aou.name AS libraryname
   FROM money.billable_xact_summary_location_view mv
   INNER JOIN actor.org_unit aou ON mv.billing_location = aou.id
-  WHERE billing_location IN (135, 136, 137, 138, 139, 140, 141, 142)
+  WHERE billing_location IN (620, 621, 622, 623, 624, 625, 626, 627)
     AND balance_owed != 0
   ORDER BY usr;
 
@@ -221,7 +219,7 @@ COPY (
     INNER JOIN biblio.record_entry bre ON bre.id = acn.record
   WHERE acn.deleted IS FALSE
     AND bre.deleted IS FALSE
-    AND acn.owning_lib IN (135, 136, 137, 138, 139, 140, 141, 142)
+    AND acn.owning_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
     AND acn.label = '##URI##'
   ORDER BY acn.record
 )
@@ -234,7 +232,7 @@ TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
 COPY (
   SELECT usrname
   FROM actor.usr
-  WHERE home_ou IN (135, 136, 137, 138, 139, 140, 141, 142)
+  WHERE home_ou IN (620, 621, 622, 623, 624, 625, 626, 627)
     AND deleted IS FALSE
     AND usrname !~ E'^[0-9]*$'
 )
@@ -249,7 +247,7 @@ COPY (
     INNER JOIN biblio.record_entry bre ON acn.record = bre.id
   WHERE bre.deleted IS FALSE
     AND acn.deleted IS FALSE
-    AND acn.owning_lib IN (135, 136, 137, 138, 139, 140, 141, 142)
+    AND acn.owning_lib IN (620, 621, 622, 623, 624, 625, 626, 627)
 )
 TO STDOUT WITH (DELIMITER ',', FORMAT CSV, HEADER FALSE);
 \o
