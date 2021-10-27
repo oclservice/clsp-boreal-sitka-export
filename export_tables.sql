@@ -71,8 +71,7 @@ CREATE OR REPLACE VIEW conifer.usr_with_authname AS
         WHERE au.id = ac.usr
           AND ac.xact_start > '2011-09-01'::DATE
       )
-    OR (au.profile IN (3, 111, 131))
-    OR (au.profile = 129 AND create_date > '2016-01-01'::DATE )
+    OR (au.profile IN (36, 37, 38, 40, 43, 45, 46, 48, 55, 56, 57))
   )
   ORDER BY au.id;
 
